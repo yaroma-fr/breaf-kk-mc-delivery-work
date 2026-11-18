@@ -161,33 +161,59 @@ function initDeliveryBlock() {
 }
 
 function recalcDelivery() {
-  let total = 0;
+  const VAT_RATE = 0.2;
+  const isVatPayer = getRadioValue("contractorVat") === "Так";
+
+  let totalNoVat = 0;
+  let totalWithVat = 0;
+
+  // Колонка «Вартість з ПДВ» видима лише для платників ПДВ
+  document.querySelectorAll("#stagesTable .vat-col").forEach(function (cell) {
+    cell.classList.toggle("hidden", !isVatPayer);
+  });
 
   document.querySelectorAll("#stagesTable tbody tr").forEach(function (row) {
     const qty = parseNumber(
       row.querySelector('[name="deliverAmount[]"]')?.value,
     );
-    const price = parseNumber(
-      row.querySelector('[name="deliverCost[]"]')?.value,
-    );
-    const sum = qty * price;
-    const out = row.querySelector('[name="deliverVart[]"]');
+    const priceEl = row.querySelector('[name="deliverCost[]"]');
+    const noVatEl = row.querySelector('[name="deliverVart[]"]');
+    const withVatEl = row.querySelector('[name="deliverVatCost[]"]');
 
-    if (out) {
-      out.value = sum ? sum.toFixed(2) : "";
+    if (!priceEl || !noVatEl || !withVatEl) return;
+
+    let noVat;
+    let withVat;
+
+    if (isVatPayer) {
+      // Вводять: кількість + вартість з ПДВ
+      noVatEl.readOnly = true;
+      withVat = parseNumber(withVatEl.value);
+      noVat = withVat / (1 + VAT_RATE);
+      noVatEl.value = noVat ? noVat.toFixed(2) : "";
+    } else {
+      // Вводять: кількість + вартість без ПДВ
+      noVatEl.readOnly = false;
+      noVat = parseNumber(noVatEl.value);
+      withVat = noVat * (1 + VAT_RATE);
     }
 
-    total += sum;
+    // Ціна за одиницю без ПДВ завжди рахується автоматично
+    priceEl.value = qty && noVat ? (noVat / qty).toFixed(2) : "";
+
+    totalNoVat += noVat;
+    totalWithVat += withVat;
   });
 
-  const isVatPayer = getRadioValue("contractorVat") === "Так";
-  const vat = total * 0.2;
+  document.getElementById("totalNoVat").value = totalNoVat
+    ? totalNoVat.toFixed(2)
+    : "";
 
-  document.getElementById("totalNoVat").value = total ? total.toFixed(2) : "";
   document.getElementById("totalVat").value =
-    isVatPayer && total ? vat.toFixed(2) : "";
+    isVatPayer && totalNoVat ? (totalWithVat - totalNoVat).toFixed(2) : "";
+
   document.getElementById("totalWithVat").value =
-    isVatPayer && total ? (total + vat).toFixed(2) : "";
+    isVatPayer && totalWithVat ? totalWithVat.toFixed(2) : "";
 
   showElementById("totalVatRow", isVatPayer);
   showElementById("totalWithVatRow", isVatPayer);
@@ -248,10 +274,13 @@ function addStageRow() {
             <input name="deliverCode[]" type="text" placeholder="Код">
         </td>
         <td>
-            <input name="deliverCost[]" type="text" placeholder="Ціна">
+            <input name="deliverCost[]" type="text" readonly placeholder="Авто">
         </td>
         <td>
-            <input name="deliverVart[]" type="text" readonly placeholder="Авто">
+            <input name="deliverVart[]" type="text" placeholder="Вартість">
+        </td>
+        <td class="vat-col hidden">
+            <input name="deliverVatCost[]" type="text" placeholder="З ПДВ">
         </td>
         <td>
             <button type="button" class="icon-button remove-row">×</button>
@@ -260,6 +289,7 @@ function addStageRow() {
 
   tbody.appendChild(row);
   renumberStages();
+  recalcDelivery();
 }
 
 function renumberStages() {
@@ -382,6 +412,8 @@ function collectBriefData() {
       deliveryTerm: getValue("deliveryTerm"),
       deliveryPlace: getRadioValue("deliveryPlace"),
       deliveryAddress: getValue("deliveryAddress"),
+      total: get("deliverVart"),
+      totalWithVat: get("deliverVatCost"),
     },
 
     payments: collectPayments(),
@@ -776,7 +808,7 @@ function buildWordDocumentHtml(data) {
 
     <h2>3. Умови поставки</h2>
 
-    ${buildItemsWordTable(data.items)}
+    ${buildItemsWordTable(data.items, isVatPayer)}
 
     <table>
         <tr>
@@ -859,7 +891,7 @@ function buildWordDocumentHtml(data) {
     `;
 }
 
-function buildItemsWordTable(items) {
+function buildItemsWordTable(items, isVatPayer) {
   if (!items || items.length === 0) {
     return "<p>Позиції не заповнені.</p>";
   }
@@ -876,6 +908,7 @@ function buildItemsWordTable(items) {
                 <td>${escapeHtml(item.code)}</td>
                 <td>${escapeHtml(item.price)}</td>
                 <td>${escapeHtml(item.total)}</td>
+                ${isVatPayer ? `<td>${escapeHtml(item.totalWithVat)}</td>` : ""}
             </tr>
         `;
   });
@@ -891,6 +924,7 @@ function buildItemsWordTable(items) {
                     <th>Код УКТЗЕД</th>
                     <th>Ціна за од. без ПДВ, грн.</th>
                     <th>Вартість без ПДВ, грн.</th>
+                    ${isVatPayer ? "<th>Вартість з ПДВ, грн.</th>" : ""}
                 </tr>
             </thead>
 

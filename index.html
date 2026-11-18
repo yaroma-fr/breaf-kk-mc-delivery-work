@@ -348,6 +348,7 @@
                   <th>Код УКТЗЕД</th>
                   <th>Ціна за од. без ПДВ, грн.</th>
                   <th>Вартість без ПДВ, грн.</th>
+                  <th class="vat-col hidden">Вартість з ПДВ, грн.</th>
                   <th></th>
                 </tr>
               </thead>
@@ -355,41 +356,16 @@
               <tbody>
                 <tr>
                   <td class="stage-number">1</td>
-                  <td>
-                    <textarea
-                      name="deliverName[]"
-                      placeholder="Найменування"
-                    ></textarea>
+                  <td><textarea name="deliverName[]" placeholder="Найменування"></textarea></td>
+                  <td><input name="deliverAmount[]" type="text" placeholder="шт" /></td>
+                  <td><input name="deliverCountry[]" type="text" placeholder="Україна" /></td>
+                  <td><input name="deliverCode[]" type="text" placeholder="Код" /></td>
+                  <td><input name="deliverCost[]" type="text" readonly placeholder="Авто" /></td>
+                  <td><input name="deliverVart[]" type="text" placeholder="Вартість" /></td>
+                  <td class="vat-col hidden">
+                    <input name="deliverVatCost[]" type="text" placeholder="З ПДВ" />
                   </td>
-                  <td>
-                    <input name="deliverAmount[]" type="text" placeholder="шт" />
-                  </td>
-                  <td>
-                    <input
-                      name="deliverCountry[]"
-                      type="text"
-                      placeholder="Україна"
-                    />
-                  </td>
-                  <td>
-                    <input name="deliverCode[]" type="text" placeholder="Код" />
-                  </td>
-                  <td>
-                    <input name="deliverCost[]" type="text" placeholder="Ціна" />
-                  </td>
-                  <td>
-                    <input
-                      name="deliverVart[]"
-                      type="text"
-                      readonly
-                      placeholder="Авто"
-                    />
-                  </td>
-                  <td>
-                    <button type="button" class="icon-button remove-row">
-                      ×
-                    </button>
-                  </td>
+                  <td><button type="button" class="icon-button remove-row">×</button></td>
                 </tr>
               </tbody>
             </table>
