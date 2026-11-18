@@ -633,3 +633,15 @@ button:focus-visible {
   content: " *";
   color: var(--danger);
 }
+
+.form-actions {
+  flex-direction: column;
+}
+
+.download-note {
+  margin: 0;
+  color: var(--secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}
