@@ -610,3 +610,26 @@ button:focus-visible {
     min-width: 900px;
   }
 }
+/* ================================
+   VALIDATION
+================================ */
+
+.field-error {
+  border-color: var(--danger) !important;
+  background: #fef2f2 !important;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.2) !important;
+}
+
+.radio-group.field-error,
+.checkbox-grid.field-error {
+  padding: 10px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  box-shadow: none !important;
+}
+
+/* Червона зірочка біля обов'язкових питань */
+.form-row > label:not(.optional)::after {
+  content: " *";
+  color: var(--danger);
+}

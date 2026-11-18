@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", function () {
   initStagesTable();
   initPaymentsTable();
   initDeliveryBlock();
+  initValidationReset();
 
   initDownloadWordButton();
   initDraftAutosave();
@@ -471,10 +472,128 @@ function initDownloadWordButton() {
   }
 
   button.addEventListener("click", function () {
+        if (!validateForm()) {
+                return;
+              }
     const data = collectBriefData();
     const html = buildWordDocumentHtml(data);
 
     downloadWordDocument(html, data);
+  });
+}
+
+/* ================================
+   VALIDATION (усі видимі поля обов'язкові)
+================================ */
+
+function isVisible(el) {
+  return !el.closest(".hidden");
+}
+
+function clearFieldErrors(form) {
+  form.querySelectorAll(".field-error").forEach(function (el) {
+    el.classList.remove("field-error");
+  });
+}
+
+function validateForm() {
+  const form = document.getElementById("briefForm");
+  const errors = [];
+
+  clearFieldErrors(form);
+
+  // Текстові поля, textarea, дати, email
+  form.querySelectorAll("input, textarea, select").forEach(function (el) {
+    if (["radio", "checkbox", "button", "file", "hidden"].includes(el.type)) {
+      return;
+    }
+
+    if (el.readOnly || el.disabled || el.dataset.optional === "true") return;
+    if (!isVisible(el)) return;
+
+    const emptyValue = !el.value.trim();
+    const badEmail = el.type === "email" && el.value && !el.checkValidity();
+
+    if (emptyValue || badEmail) {
+      el.classList.add("field-error");
+      errors.push(el);
+    }
+  });
+
+  // Групи радіокнопок: має бути обрано один варіант
+  const radioNames = new Set();
+
+  form.querySelectorAll('input[type="radio"]').forEach(function (radio) {
+    radioNames.add(radio.name);
+  });
+
+  radioNames.forEach(function (name) {
+    const radios = Array.from(
+      form.querySelectorAll(`input[type="radio"][name="${name}"]`),
+    );
+
+    if (!radios.some(isVisible)) return;
+
+    if (!radios.some(function (r) { return r.checked; })) {
+      const box = radios[0].closest(".radio-group") || radios[0];
+      box.classList.add("field-error");
+      errors.push(box);
+    }
+  });
+
+  // Групи чекбоксів: має бути обрано хоча б один варіант
+  const checkNames = new Set();
+
+  form.querySelectorAll('input[type="checkbox"]').forEach(function (box) {
+    checkNames.add(box.name);
+  });
+
+  checkNames.forEach(function (name) {
+    const boxes = Array.from(
+      form.querySelectorAll(`input[type="checkbox"][name="${name}"]`),
+    );
+
+    if (!boxes.some(isVisible)) return;
+
+    if (!boxes.some(function (b) { return b.checked; })) {
+      const group = boxes[0].closest(".checkbox-grid") || boxes[0];
+      group.classList.add("field-error");
+      errors.push(group);
+    }
+  });
+
+  if (errors.length > 0) {
+    alert(
+      "Заповніть усі обов'язкові поля. Не заповнено: " +
+        errors.length +
+        ". Незаповнені поля підсвічено червоним.",
+    );
+
+    errors[0].scrollIntoView({ behavior: "smooth", block: "center" });
+
+    if (typeof errors[0].focus === "function") {
+      errors[0].focus({ preventScroll: true });
+    }
+
+    return false;
+  }
+
+  return true;
+}
+
+function initValidationReset() {
+  const form = document.getElementById("briefForm");
+
+  // Червоне підсвічування зникає, щойно поле змінили
+  form.addEventListener("input", function (event) {
+    event.target.classList.remove("field-error");
+  });
+
+  form.addEventListener("change", function (event) {
+    event.target.classList.remove("field-error");
+
+    const group = event.target.closest(".radio-group, .checkbox-grid");
+    if (group) group.classList.remove("field-error");
   });
 }
 
