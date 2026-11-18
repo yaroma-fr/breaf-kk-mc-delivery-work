@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", function () {
   initDeliveryBlock();
 
   initDownloadWordButton();
+  initDraftAutosave();
 });
 
 /* ================================
@@ -855,4 +856,162 @@ function downloadWordDocument(html, data) {
 
 function makeSafeFileName(fileName) {
   return fileName.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, "_");
+}
+
+/* ================================
+   AUTOSAVE (збереження чернетки)
+================================ */
+
+const DRAFT_KEY = "brief_draft_v1:" + location.host + location.pathname;
+
+const DRAFT_TABLES = [
+  { id: "stagesTable", addRow: addStageRow, renumber: renumberStages },
+  { id: "paymentsTable", addRow: addPaymentRow, renumber: renumberPayments },
+];
+
+function collectDraft() {
+  const form = document.getElementById("briefForm");
+  const state = { fields: {}, radios: {}, checks: {}, tables: {} };
+
+  Array.from(form.elements).forEach(function (el) {
+    if (el.closest("table") || el.type === "file" || el.type === "button") {
+      return;
+    }
+
+    if (el.type === "radio") {
+      if (el.checked) state.radios[el.name] = el.value;
+    } else if (el.type === "checkbox") {
+      if (!state.checks[el.name]) state.checks[el.name] = [];
+      if (el.checked) state.checks[el.name].push(el.value);
+    } else if (el.id) {
+      state.fields[el.id] = el.value;
+    }
+  });
+
+  DRAFT_TABLES.forEach(function (table) {
+    const rows = document.querySelectorAll("#" + table.id + " tbody tr");
+
+    state.tables[table.id] = Array.from(rows).map(function (row) {
+      const values = {};
+
+      row.querySelectorAll("input, textarea").forEach(function (el) {
+        values[el.name] = el.value;
+      });
+
+      return values;
+    });
+  });
+
+  return state;
+}
+
+function saveDraft() {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(collectDraft()));
+  } catch (error) {
+    console.warn("Cannot save draft:", error);
+  }
+}
+
+function restoreDraft() {
+  let state;
+
+  try {
+    state = JSON.parse(localStorage.getItem(DRAFT_KEY));
+  } catch (error) {
+    return;
+  }
+
+  if (!state) return;
+
+  // Звичайні поля
+  Object.keys(state.fields || {}).forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.value = state.fields[id];
+  });
+
+  // Радіокнопки (change запускає показ/приховування залежних полів)
+  Object.keys(state.radios || {}).forEach(function (name) {
+    document
+      .querySelectorAll(`input[type="radio"][name="${name}"]`)
+      .forEach(function (radio) {
+        if (radio.value === state.radios[name]) {
+          radio.checked = true;
+          radio.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      });
+  });
+
+  // Чекбокси
+  Object.keys(state.checks || {}).forEach(function (name) {
+    document
+      .querySelectorAll(`input[type="checkbox"][name="${name}"]`)
+      .forEach(function (box) {
+        box.checked = state.checks[name].includes(box.value);
+      });
+  });
+
+  // Таблиці
+  DRAFT_TABLES.forEach(function (table) {
+    const savedRows = (state.tables || {})[table.id];
+    if (!savedRows || savedRows.length === 0) return;
+
+    const tbody = document.querySelector("#" + table.id + " tbody");
+
+    while (tbody.rows.length < savedRows.length) {
+      table.addRow();
+    }
+
+    while (tbody.rows.length > savedRows.length) {
+      tbody.deleteRow(tbody.rows.length - 1);
+    }
+
+    savedRows.forEach(function (values, index) {
+      const row = tbody.rows[index];
+
+      Object.keys(values).forEach(function (name) {
+        const el = row.querySelector(`[name="${name}"]`);
+        if (el) el.value = values[name];
+      });
+    });
+
+    table.renumber();
+  });
+
+  if (typeof recalcDelivery === "function") {
+    recalcDelivery();
+  }
+}
+
+function initDraftAutosave() {
+  const form = document.getElementById("briefForm");
+  if (!form) return;
+
+  restoreDraft();
+
+  let timer = null;
+  const scheduleSave = function () {
+    clearTimeout(timer);
+    timer = setTimeout(saveDraft, 300);
+  };
+
+  form.addEventListener("input", scheduleSave);
+  form.addEventListener("change", scheduleSave);
+  // Додавання / видалення рядків таблиць
+  form.addEventListener("click", function (event) {
+    if (event.target.closest(".remove-row, .secondary-button")) {
+      scheduleSave();
+    }
+  });
+
+  const clearBtn = document.getElementById("clearDraftBtn");
+
+  if (clearBtn) {
+    clearBtn.addEventListener("click", function () {
+      if (confirm("Очистити всі введені дані?")) {
+        localStorage.removeItem(DRAFT_KEY);
+        location.reload();
+      }
+    });
+  }
 }
