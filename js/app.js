@@ -471,6 +471,7 @@ function collectItems() {
       code: get("deliverCode"),
       price: get("deliverCost"),
       total: get("deliverVart"),
+      totalWithVat: get("deliverVatCost"),
     };
   });
 }
