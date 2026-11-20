@@ -163,6 +163,7 @@ function initDeliveryBlock() {
 function recalcDelivery() {
   const VAT_RATE = 0.2;
   const isVatPayer = getRadioValue("contractorVat") === "Так";
+  updatePaymentHeader();
 
   let totalNoVat = 0;
   let totalWithVat = 0;
@@ -219,6 +220,14 @@ function recalcDelivery() {
 
   showElementById("totalVatRow", isVatPayer);
   showElementById("totalWithVatRow", isVatPayer);
+}
+
+function updatePaymentHeader() {
+  const header = document.getElementById("paymentAmountHeader");
+  if (!header) return;
+
+  const isVatPayer = getRadioValue("contractorVat") === "Так";
+  header.textContent = isVatPayer ? "Сума з ПДВ" : "Сума";
 }
 
 /* ================================
@@ -856,7 +865,7 @@ function buildWordDocumentHtml(data) {
 
     <h2>4. Порядок оплати</h2>
 
-    ${buildPaymentsWordTable(data.payments)}
+    ${buildPaymentsWordTable(data.payments, isVatPayer)}
 
     <h2>5. Додаткові та ризикові умови</h2>
 
@@ -936,7 +945,7 @@ function buildItemsWordTable(items, isVatPayer) {
     `;
 }
 
-function buildPaymentsWordTable(payments) {
+function buildPaymentsWordTable(payments, isVatPayer) {
   if (!payments || payments.length === 0) {
     return "<p>Графік оплат не заповнений.</p>";
   }
@@ -959,7 +968,7 @@ function buildPaymentsWordTable(payments) {
             <thead>
                 <tr>
                     <th>№</th>
-                    <th>Сума</th>
+                    <th>${isVatPayer ? "Сума з ПДВ" : "Сума"}</th>
                     <th>Дата</th>
                     <th>Коментар</th>
                 </tr>
