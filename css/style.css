@@ -645,3 +645,25 @@ button:focus-visible {
   line-height: 1.5;
   text-align: center;
 }
+
+/* ================================
+   READONLY (поля, що рахуються автоматично)
+================================ */
+
+input[readonly],
+textarea[readonly] {
+  background: #eceff3;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+input[readonly]::placeholder {
+  color: #6b7280;
+  font-style: italic;
+}
+
+input[readonly]:focus {
+  border-color: var(--border);
+  box-shadow: none;
+  background: #eceff3;
+}

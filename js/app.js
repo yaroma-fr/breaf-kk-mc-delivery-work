@@ -188,12 +188,14 @@ function recalcDelivery() {
     if (isVatPayer) {
       // Вводять: кількість + вартість з ПДВ
       noVatEl.readOnly = true;
+      noVatEl.placeholder = "Авто";
       withVat = parseNumber(withVatEl.value);
       noVat = withVat / (1 + VAT_RATE);
       noVatEl.value = noVat ? noVat.toFixed(2) : "";
     } else {
       // Вводять: кількість + вартість без ПДВ
       noVatEl.readOnly = false;
+      noVatEl.placeholder = "Вартість";
       noVat = parseNumber(noVatEl.value);
       withVat = noVat * (1 + VAT_RATE);
     }
