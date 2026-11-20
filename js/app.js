@@ -412,8 +412,6 @@ function collectBriefData() {
       deliveryTerm: getValue("deliveryTerm"),
       deliveryPlace: getRadioValue("deliveryPlace"),
       deliveryAddress: getValue("deliveryAddress"),
-      total: get("deliverVart"),
-      totalWithVat: get("deliverVatCost"),
     },
 
     payments: collectPayments(),
